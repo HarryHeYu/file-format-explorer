@@ -3,23 +3,33 @@
 把“文件格式规范”从文档变成可以点击、观察、探索的东西。
 
 打开一个文件 → 识别格式 → 解析二进制结构 → 结构树 ↔ Hex 双向定位 → 逐字段解释。
+点击结构树里的 `Width = 1920`，左边真实文件里的 `00 00 07 80` 会被高亮——
+你能直观看到“1920 是怎么存在文件里的”。
 
-## 当前状态：v0.8（PNG + WAV + JPEG + ZIP + PE + ELF + SQLite + MP4 + 搜索 + Diff + 报告）
+## 它能做什么
 
-- ✅ 八种格式（magic 检测，不看扩展名）：
-  - **PNG** chunk + CRC + IHDR 字段级 · **WAV** RIFF + fmt 字段级 + 时长
-  - **JPEG** marker 遍历 + SOF/DQT/JFIF/EXIF · **ZIP** CD↔Local relation + CRC32 + 截断抢救
-  - **PE** DOS/COFF/Optional/Sections/Imports/Exports，全指针 RVA 映射
-  - **ELF** 头/段/节/符号表（32/64-bit，LE/BE 自适应）
-  - **SQLite** 页分类 + record 解码 + **schema↔root page relation**
-  - **MP4** box 层级 + mvhd/tkhd/hdlr/stsd（timescale/duration/尺寸/codec）
-- ✅ 结构 ↔ 字节双向定位（PE/SQLite/ZIP 的跨节点 relation 在 Inspector 中可点击跳转）
-- ✅ Hex 搜索（hex/ASCII，Ctrl+F）· Go to offset（数字或节点名）· 校验汇总面板
-- ✅ **Diff**：`ffe diff a b` — 字节差 run + 结构化 added/removed/changed（`Width: 320 → 128`）
-- ✅ 报告导出：`ffe report`（Markdown/JSON，含 PE sections/imports 摘要）
-- ✅ 虚拟化 Hex（按需 64KB 分块）· Field Inspector · 数据解释器 · 键盘导航
-- ✅ 76 个测试 + 多轮对抗 fuzz（9700+ 变异 0 崩溃 0 挂起）+ 子代理代码评审/API 契约测试/文档审计；真实系统文件（notepad.exe、winbrand.dll）与真实生成数据库（sqlite3）
-- ✅ CLI 与 GUI 共用同一 parser core
+**结构探索**（8 种格式，magic 检测、不信任扩展名）
+
+| 格式 | 解析深度 |
+|---|---|
+| PNG | chunk 遍历 + CRC 校验，IHDR 逐字段，文本/色彩元数据 |
+| WAV | RIFF 子块，fmt 逐字段（编解码器/声道/采样率），时长计算 |
+| JPEG | marker 遍历，SOF 尺寸/DQT 表/JFIF/EXIF 检测 |
+| ZIP | 中央目录 ↔ 本地文件头双向关联，CRC32 全量校验，截断抢救 |
+| PE | DOS→COFF→Optional→Sections→Imports/Exports，指针全部经 RVA 映射 |
+| ELF | 32/64-bit、大小端自适应，段/节/符号表 |
+| SQLite | 页分类（B-tree/自由页），行解码，schema 对象 ↔ root page 跳转 |
+| MP4 | box 层级递归，timescale/时长/分辨率/编解码器 |
+
+**交互**：结构树 ↔ Hex 双向定位（跨节点关系可点击跳转）、Hex/ASCII 搜索、
+按 offset 或节点名跳转、损坏位置汇总面板、虚拟化 Hex（大文件只按需读 64KB 窗口）、
+选中字节的数据解释器。
+
+**容错**：解析器把输入当不可信数据——截断、坏 CRC、超界指针、伪 length 都
+变成可浏览的错误节点，永不崩溃。损坏文件本身就是可探索的对象。
+
+**工程**：CLI 与 GUI 共用同一 parser core；76 个测试；9700+ 变异 fuzz 无崩溃；
+经独立代码评审、API 契约测试与文档审计（记录见 docs/DECISIONS.md D22）。
 
 ## 快速开始
 
@@ -28,9 +38,11 @@
 python -m ffe.gui_server path\to\image.png
 
 # CLI
-python -m ffe inspect samples/gradient_320x200.png
-python -m ffe inspect samples/wav/sine_440_16bit_mono.wav --json
-python -m ffe validate samples/corrupt/bad_crc.png
+python -m ffe inspect 文件.png              # 结构树
+python -m ffe inspect 文件.png --json       # JSON 输出
+python -m ffe validate 文件                 # 校验（✓/✗）
+python -m ffe diff 旧文件 新文件            # 字节差 + 结构差（Width: 320 → 128）
+python -m ffe report 文件.exe               # Markdown 分析报告（--json 可选）
 ```
 
 无第三方依赖，仅需 Python 3.10+。
@@ -58,4 +70,9 @@ docs/           架构 / 路线图 / 决策 / 格式文档
 samples/        测试语料（含 corrupt/ 损坏变体）
 ```
 
-详细文档见 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)、[docs/ROADMAP.md](docs/ROADMAP.md)、[docs/DECISIONS.md](docs/DECISIONS.md)、[docs/formats/png.md](docs/formats/png.md)。
+## 文档
+
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — 架构与数据流
+- [docs/ROADMAP.md](docs/ROADMAP.md) — 版本路线（v0.1 PNG → v0.8 diff，逐版可查）
+- [docs/DECISIONS.md](docs/DECISIONS.md) — 23 条技术决策及理由
+- [docs/formats/](docs/formats) — 每种格式的实现状态、已知限制、语料说明
