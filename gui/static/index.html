@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>File Format Explorer</title>
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<header id="topbar">
+  <span class="logo">ffe · File Format Explorer</span>
+  <input id="filePath" type="text" placeholder="Path to file (e.g. C:\images\logo.png)">
+  <button id="btnOpen">Open</button>
+  <input id="goTo" type="text" placeholder="Go to offset (0x… or decimal)">
+  <button id="btnGo">Go</button>
+  <input id="searchBox" type="text" placeholder="Search hex (50 4B) or text (IHDR)">
+  <button id="btnSearch">Search</button>
+  <span id="fileInfo"></span>
+</header>
+
+<div id="searchResults" style="display:none">
+  <div class="sr-head"><span id="srSummary"></span><button id="srClose">✕</button></div>
+  <div id="srList"></div>
+</div>
+
+<main id="layout">
+  <section id="hexPane">
+    <div id="hexScroll">
+      <div id="hexSpacer"></div>
+      <div id="hexCanvas"></div>
+    </div>
+  </section>
+
+  <section id="treePane">
+    <div class="paneTitle">Structure</div>
+    <div id="validationPanel" style="display:none"></div>
+    <div id="tree"></div>
+  </section>
+</main>
+
+<section id="inspector">
+  <div class="paneTitle">Field Inspector</div>
+  <div id="inspectorBody"><em>Click a structure node or a byte to inspect it.</em></div>
+</section>
+
+<div id="statusBar"></div>
+<script src="/app.js"></script>
+</body>
+</html>
